@@ -6,6 +6,7 @@ import com.example.ddingsroom.suggest_post.dto.SuggestPostUpdateRequestDTO;
 import com.example.ddingsroom.suggest_post.entity.SuggestPostEntity;
 import com.example.ddingsroom.suggest_post.repository.SuggestPostRepository;
 import com.example.ddingsroom.suggest_post.util.SuggestPostCategory;
+import com.example.ddingsroom.suggest_post_image.service.SuggestPostImageService;
 import com.example.ddingsroom.user.entity.UserEntity;
 import com.example.ddingsroom.user.repository.UserRepository;
 import com.example.ddingsroom.suggest_post.util.SuggestPostLocation;
@@ -27,6 +28,7 @@ public class SuggestPostSevice {
 
     private final SuggestPostRepository suggestPostRepository;
     private final UserRepository userRepository;
+    private final SuggestPostImageService suggestPostImageService;
 
     private int getCategoryValue(String categoryName) {
         SuggestPostCategory categoryEnum = SuggestPostCategory.fromName(categoryName);
@@ -94,6 +96,7 @@ public class SuggestPostSevice {
             throw new SecurityException("게시물 삭제 권한이 없습니다.");
         }
 
+        suggestPostImageService.deleteFilesOfSuggestPost(suggestId);
         suggestPostRepository.delete(existingPost);
     }
 

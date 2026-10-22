@@ -57,4 +57,8 @@ public interface ReservationRepository extends JpaRepository<ReservationEntity, 
 
     @Transactional
     void deleteByUser(UserEntity user);
+
+    boolean existsByRoom_IdAndStatus(Long roomId, String status);
+
+    boolean existsByRoom_Id(Long roomId);
 }

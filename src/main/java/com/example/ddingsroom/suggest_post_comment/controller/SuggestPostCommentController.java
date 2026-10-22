@@ -1,5 +1,6 @@
 package com.example.ddingsroom.suggest_post_comment.controller;
 
+import com.example.ddingsroom.suggest_post_comment.docs.SuggestionAnswerApiDocs;
 import com.example.ddingsroom.config.SecurityUtils;
 import com.example.ddingsroom.suggest_post_comment.dto.*;
 import com.example.ddingsroom.suggest_post_comment.service.SuggestPostCommentService;
@@ -19,11 +20,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/suggestions/comments")
 @RequiredArgsConstructor
-public class SuggestPostCommentController {
+public class SuggestPostCommentController implements SuggestionAnswerApiDocs {
 
     private final SuggestPostCommentService suggestPostCommentService;
     private final SecurityUtils securityUtils;
 
+    @Override
     @PostMapping
     public ResponseEntity<Map<String, String>> createSuggestComment(@Valid @RequestBody SuggestPostCommentCreateRequestDTO request) {
         Map<String, String> response = new HashMap<>();
@@ -48,6 +50,7 @@ public class SuggestPostCommentController {
         }
     }
 
+    @Override
     @PutMapping
     public ResponseEntity<Map<String, String>> updateSuggestComment(@Valid @RequestBody SuggestPostCommentUpdateRequestDTO request) {
         Map<String, String> response = new HashMap<>();
@@ -72,6 +75,7 @@ public class SuggestPostCommentController {
         }
     }
 
+    @Override
     @DeleteMapping("/{commentId}")
     public ResponseEntity<Map<String, String>> deleteSuggestComment(@PathVariable Long commentId) {
         Map<String, String> response = new HashMap<>();
@@ -96,6 +100,7 @@ public class SuggestPostCommentController {
         }
     }
 
+    @Override
     @GetMapping
     public ResponseEntity<Map<String, Object>> retrieveSuggestComments(@RequestParam("suggest_post_id") Long postId) {
         Map<String, Object> response = new HashMap<>();

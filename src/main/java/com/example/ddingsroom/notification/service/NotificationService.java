@@ -2,22 +2,31 @@ package com.example.ddingsroom.notification.service;
 
 import com.example.ddingsroom.notification.dto.BaseResponseDTO;
 import com.example.ddingsroom.notification.dto.NotificationCreateRequestDTO;
+import com.example.ddingsroom.notification.dto.NotificationReadResponseDTO;
 import com.example.ddingsroom.notification.dto.NotificationUpdateRequestDTO;
 import com.example.ddingsroom.notification.dto.NotificationResponseDTO;
 import com.example.ddingsroom.notification.entity.NotificationEntity;
+import com.example.ddingsroom.notification.entity.NotificationReadEntity;
+import com.example.ddingsroom.notification.repository.NotificationReadRepository;
 import com.example.ddingsroom.notification.repository.NotificationRepository;
 import com.example.ddingsroom.user.dto.CustomUserDetails;
 import com.example.ddingsroom.user.entity.UserEntity;
 import com.example.ddingsroom.user.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,14 +34,17 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final NotificationReadRepository notificationReadRepository;
 
     @Autowired
-    public NotificationService(NotificationRepository notificationRepository, UserRepository userRepository) {
+    public NotificationService(NotificationRepository notificationRepository, UserRepository userRepository,
+                               NotificationReadRepository notificationReadRepository) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
+        this.notificationReadRepository = notificationReadRepository;
     }
 
-    private BaseResponseDTO checkAdminPermission() {
+    private <T> BaseResponseDTO<T> checkAdminPermission() {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
@@ -53,9 +65,9 @@ public class NotificationService {
         return userDetails.getUserEntity().getId();
     }
 
-    public BaseResponseDTO createNotification(NotificationCreateRequestDTO dto) {
+    public BaseResponseDTO<NotificationResponseDTO> createNotification(NotificationCreateRequestDTO dto) {
         try {
-            BaseResponseDTO permissionCheck = checkAdminPermission();
+            BaseResponseDTO<NotificationResponseDTO> permissionCheck = checkAdminPermission();
             if (permissionCheck != null) {
                 return permissionCheck;
             }
@@ -87,9 +99,9 @@ public class NotificationService {
         }
     }
 
-    public BaseResponseDTO updateNotification(NotificationUpdateRequestDTO dto) {
+    public BaseResponseDTO<NotificationResponseDTO> updateNotification(NotificationUpdateRequestDTO dto) {
         try {
-            BaseResponseDTO permissionCheck = checkAdminPermission();
+            BaseResponseDTO<NotificationResponseDTO> permissionCheck = checkAdminPermission();
             if (permissionCheck != null) {
                 return permissionCheck;
             }
@@ -125,9 +137,9 @@ public class NotificationService {
         }
     }
 
-    public BaseResponseDTO deleteNotification(Long notificationId) {
+    public BaseResponseDTO<Void> deleteNotification(Long notificationId) {
         try {
-            BaseResponseDTO permissionCheck = checkAdminPermission();
+            BaseResponseDTO<Void> permissionCheck = checkAdminPermission();
             if (permissionCheck != null) {
                 return permissionCheck;
             }
@@ -145,11 +157,16 @@ public class NotificationService {
         }
     }
 
-    public BaseResponseDTO getAllNotifications() {
+    public BaseResponseDTO<List<NotificationResponseDTO>> getAllNotifications() {
         try {
             List<NotificationEntity> notifications = notificationRepository.findAllByOrderByCreatedAtDesc();
+            Set<Long> readIds = findReadNotificationIds();
             List<NotificationResponseDTO> responseDTOs = notifications.stream()
-                    .map(this::convertToResponseDTO)
+                    .map(entity -> {
+                        NotificationResponseDTO dto = convertToResponseDTO(entity);
+                        dto.setIsRead(readIds.contains(entity.getId()));
+                        return dto;
+                    })
                     .collect(Collectors.toList());
 
             return BaseResponseDTO.success("공지사항 목록 조회 성공", responseDTOs);
@@ -158,11 +175,12 @@ public class NotificationService {
         }
     }
 
-    public BaseResponseDTO getNotification(Long id) {
+    public BaseResponseDTO<NotificationResponseDTO> getNotification(Long id) {
         try {
             Optional<NotificationEntity> optional = notificationRepository.findById(id);
             if (optional.isPresent()) {
                 NotificationResponseDTO responseDTO = convertToResponseDTO(optional.get());
+                responseDTO.setIsRead(isReadByCurrentUser(id));
                 return BaseResponseDTO.success("공지사항 조회 성공", responseDTO);
             } else {
                 return BaseResponseDTO.error("해당 공지사항을 찾을 수 없습니다. ID: " + id);
@@ -173,7 +191,7 @@ public class NotificationService {
     }
 
     @Transactional
-    public BaseResponseDTO incrementViewCount(Long notificationId) {
+    public BaseResponseDTO<Void> incrementViewCount(Long notificationId) {
         try {
             Optional<NotificationEntity> optional = notificationRepository.findById(notificationId);
             if (optional.isEmpty()) {
@@ -191,7 +209,7 @@ public class NotificationService {
         }
     }
 
-    public BaseResponseDTO getRecentNotificationsCount() {
+    public BaseResponseDTO<Long> getRecentNotificationsCount() {
         try {
             LocalDateTime threeDaysAgo = LocalDateTime.now().minusDays(3);
             Long count = notificationRepository.countNotificationsInLast3Days(threeDaysAgo);
@@ -200,6 +218,58 @@ public class NotificationService {
         } catch (Exception e) {
             return BaseResponseDTO.error("최근 공지사항 개수 조회 중 오류가 발생했습니다: " + e.getMessage());
         }
+    }
+
+    // 공지 읽음 처리 (이미 읽었으면 기존 기록 그대로 반환)
+    public NotificationReadResponseDTO markAsRead(Long notificationId) {
+        Long userId = getCurrentUserIdOrNull();
+        if (userId == null) {
+            throw new AuthenticationCredentialsNotFoundException("로그인이 필요합니다.");
+        }
+        if (notificationId == null) {
+            throw new IllegalArgumentException("공지사항 ID는 필수입니다.");
+        }
+
+        NotificationEntity notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new EntityNotFoundException("공지사항을 찾을 수 없습니다."));
+        NotificationReadEntity read = notificationReadRepository.findByUser_IdAndNotification_Id(userId, notificationId)
+                .orElseGet(() -> saveRead(userId, notification));
+
+        return new NotificationReadResponseDTO(notificationId, true, read.getReadAt());
+    }
+
+    private NotificationReadEntity saveRead(Long userId, NotificationEntity notification) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
+        try {
+            return notificationReadRepository.save(new NotificationReadEntity(user, notification));
+        } catch (DataIntegrityViolationException e) {
+            // 동시 요청으로 이미 저장된 경우
+            return notificationReadRepository.findByUser_IdAndNotification_Id(userId, notification.getId())
+                    .orElseThrow(() -> e);
+        }
+    }
+
+    private Set<Long> findReadNotificationIds() {
+        Long userId = getCurrentUserIdOrNull();
+        if (userId == null) {
+            return Collections.emptySet();
+        }
+        return new HashSet<>(notificationReadRepository.findNotificationIdsByUserId(userId));
+    }
+
+    private boolean isReadByCurrentUser(Long notificationId) {
+        Long userId = getCurrentUserIdOrNull();
+        return userId != null && notificationReadRepository.existsByUser_IdAndNotification_Id(userId, notificationId);
+    }
+
+    // 비로그인 요청이면 null
+    private Long getCurrentUserIdOrNull() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails userDetails) {
+            return userDetails.getUserEntity().getId();
+        }
+        return null;
     }
 
     private NotificationResponseDTO convertToResponseDTO(NotificationEntity entity) {

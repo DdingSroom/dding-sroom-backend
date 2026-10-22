@@ -1,5 +1,6 @@
 package com.example.ddingsroom.reservation.controller;
 
+import com.example.ddingsroom.reservation.docs.ReservationApiDocs;
 import com.example.ddingsroom.reservation.dto.BaseResponseDTO;
 import com.example.ddingsroom.reservation.dto.ReservationCancelRequestDTO;
 import com.example.ddingsroom.reservation.dto.ReservationRequestDTO;
@@ -15,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/reservations")
-public class ReservationController {
+public class ReservationController implements ReservationApiDocs {
 
     private static final Logger logger = LoggerFactory.getLogger(ReservationController.class);
     private final ReservationService reservationService;
@@ -27,6 +28,7 @@ public class ReservationController {
         this.securityUtils = securityUtils;
     }
 
+    @Override
     @PostMapping
     public ResponseEntity<BaseResponseDTO> createReservation(@RequestBody ReservationRequestDTO requestDTO) {
         Long authenticatedUserId = securityUtils.getAuthenticatedUserId();
@@ -47,6 +49,7 @@ public class ReservationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @Override
     @PostMapping("/cancel")
     public ResponseEntity<BaseResponseDTO> cancelReservation(@RequestBody ReservationCancelRequestDTO requestDTO) {
         Long authenticatedUserId = securityUtils.getAuthenticatedUserId();
@@ -64,6 +67,7 @@ public class ReservationController {
         return ResponseEntity.ok(response);
     }
 
+    @Override
     @GetMapping("/me")
     public ResponseEntity<ReservationResponseDTO> getMyReservations() {
         Long authenticatedUserId = securityUtils.getAuthenticatedUserId();
@@ -75,6 +79,7 @@ public class ReservationController {
                 response.getReservations() != null ? response.getReservations().size() : 0);
         return ResponseEntity.ok(response);
     }
+    @Override
     @GetMapping("/all-reservation")
     public ResponseEntity<ReservationResponseDTO> getAllReservations() {
         logger.info("전체 예약 조회 요청");
@@ -86,6 +91,7 @@ public class ReservationController {
         return ResponseEntity.ok(response);
     }
 
+    @Override
     @GetMapping("/crowding-level")
     public ResponseEntity<BaseResponseDTO> getCurrentCrowdingLevel() {
         logger.info("실시간 혼잡도 조회 요청");

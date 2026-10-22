@@ -1,5 +1,6 @@
 package com.example.ddingsroom.user.controller;
 
+import com.example.ddingsroom.user.docs.TokenApiDocs;
 import com.example.ddingsroom.user.entity.RefreshEntity;
 import com.example.ddingsroom.user.jwt.JWTUtil;
 import com.example.ddingsroom.user.repository.RefreshRepository;
@@ -19,7 +20,7 @@ import java.time.ZoneId;
 
 @Controller
 @ResponseBody
-public class ReissueController {
+public class ReissueController implements TokenApiDocs {
 
     private final JWTUtil jwtUtil;
     private final RefreshRepository refreshRepository;
@@ -29,6 +30,7 @@ public class ReissueController {
         this.refreshRepository = refreshRepository;
     }
 
+    @Override
     @PostMapping("/reissue")
     public ResponseEntity<?> reissue(HttpServletRequest request, HttpServletResponse response) {
 

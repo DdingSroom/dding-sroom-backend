@@ -1,5 +1,6 @@
 package com.example.ddingsroom.config;
 
+import com.example.ddingsroom.user.dto.CustomUserDetails;
 import com.example.ddingsroom.user.entity.UserEntity;
 import com.example.ddingsroom.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,10 @@ public class SecurityUtils {
             throw new SecurityException("로그인되지 않은 사용자입니다.");
         }
         Object principal = authentication.getPrincipal();
+        // JWT 인증은 토큰의 id 사용 (닉네임은 변경될 수 있어 식별자로 쓰지 않음)
+        if (principal instanceof CustomUserDetails userDetails && userDetails.getUserEntity().getId() != null) {
+            return userDetails.getUserEntity().getId();
+        }
         String username;
         if (principal instanceof UserDetails) {
             username = ((UserDetails) principal).getUsername();

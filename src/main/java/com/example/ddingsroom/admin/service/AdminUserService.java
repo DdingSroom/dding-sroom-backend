@@ -2,8 +2,11 @@ package com.example.ddingsroom.admin.service;
 
 import com.example.ddingsroom.admin.dto.AdminResponseDTO;
 import com.example.ddingsroom.admin.dto.AdminUserDTO;
+import com.example.ddingsroom.suggest_post_image.service.SuggestPostImageService;
 import com.example.ddingsroom.user.entity.UserEntity;
+import com.example.ddingsroom.user.repository.RefreshRepository;
 import com.example.ddingsroom.user.repository.UserRepository;
+import com.example.ddingsroom.user.repository.VerificationCodeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,10 +27,18 @@ public class AdminUserService {
     
     private static final Logger logger = LoggerFactory.getLogger(AdminUserService.class);
     private final UserRepository userRepository;
-    
+    private final RefreshRepository refreshRepository;
+    private final VerificationCodeRepository verificationCodeRepository;
+    private final SuggestPostImageService suggestPostImageService;
+
     @Autowired
-    public AdminUserService(UserRepository userRepository) {
+    public AdminUserService(UserRepository userRepository, RefreshRepository refreshRepository,
+                            VerificationCodeRepository verificationCodeRepository,
+                            SuggestPostImageService suggestPostImageService) {
         this.userRepository = userRepository;
+        this.refreshRepository = refreshRepository;
+        this.verificationCodeRepository = verificationCodeRepository;
+        this.suggestPostImageService = suggestPostImageService;
     }
     
     /**
@@ -102,8 +113,12 @@ public class AdminUserService {
             }
             
             UserEntity user = userOptional.get();
+            boolean blocking = "blocked".equals(status) && !"blocked".equals(user.getState());
             user.setState(status);
             userRepository.save(user);
+            if (blocking) {
+                revokeRefreshTokens(user);
+            }
             
             String statusText = "normal".equals(status) ? "활성화" : "비활성화";
             return ResponseEntity.ok(AdminResponseDTO.success(
@@ -139,8 +154,12 @@ public class AdminUserService {
             }
             
             UserEntity user = userOptional.get();
+            boolean changed = !role.equals(user.getRole());
             user.setRole(role);
             userRepository.save(user);
+            if (changed) {
+                revokeRefreshTokens(user);
+            }
             
             String roleText = "ROLE_ADMIN".equals(role) ? "관리자" : "일반 사용자";
             return ResponseEntity.ok(AdminResponseDTO.success(
@@ -172,15 +191,28 @@ public class AdminUserService {
             UserEntity user = userOptional.get();
             String username = user.getUsername();
 
+            // 회원 탈퇴와 동일하게 JPA 관계가 없는 refresh·인증코드, S3 첨부 파일도 정리
+            revokeRefreshTokens(user);
+            if (user.getEmail() != null) {
+                verificationCodeRepository.findByEmail(user.getEmail()).ifPresent(verificationCodeRepository::delete);
+            }
+            suggestPostImageService.deleteFilesOfUser(userId);
             userRepository.delete(user);
-            
+
             return ResponseEntity.ok(AdminResponseDTO.success(
                     String.format("사용자 '%s'와 관련된 모든 데이터가 삭제되었습니다.", username)));
-            
+
         } catch (Exception e) {
             logger.error("사용자 삭제 중 오류 발생: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(AdminResponseDTO.error("사용자 삭제 중 오류가 발생했습니다."));
+        }
+    }
+
+    // 재발급(/reissue)이 토큰 정보를 그대로 복사하므로 refresh를 지워 재로그인해야 변경이 반영되게 함
+    private void revokeRefreshTokens(UserEntity user) {
+        if (user.getEmail() != null) {
+            refreshRepository.deleteByUsername(user.getEmail());
         }
     }
     

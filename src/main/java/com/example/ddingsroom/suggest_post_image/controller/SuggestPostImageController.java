@@ -1,5 +1,6 @@
 package com.example.ddingsroom.suggest_post_image.controller;
 
+import com.example.ddingsroom.suggest_post_image.docs.SuggestionImageApiDocs;
 import com.example.ddingsroom.config.SecurityUtils;
 import com.example.ddingsroom.user.entity.UserEntity;
 import com.example.ddingsroom.user.repository.UserRepository;
@@ -25,11 +26,12 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/suggestions/images")
 @RequiredArgsConstructor
-public class SuggestPostImageController {
+public class SuggestPostImageController implements SuggestionImageApiDocs {
 
     private final SuggestPostImageService suggestPostImageService;
     private final SecurityUtils securityUtils;
 
+    @Override
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> uploadSuggestImage(
             @RequestPart("request") @Valid SuggestPostImageUploadRequestDTO request,
@@ -60,6 +62,7 @@ public class SuggestPostImageController {
         }
     }
 
+    @Override
     @DeleteMapping("/{imageId}")
     public ResponseEntity<Map<String, String>> deleteSuggestImage(@PathVariable Long imageId) {
         Map<String, String> response = new HashMap<>();
@@ -82,6 +85,7 @@ public class SuggestPostImageController {
         }
     }
 
+    @Override
     @GetMapping
     public ResponseEntity<Map<String, Object>> retrieveSuggestImages(@RequestParam("suggest_post_id") Long suggestPostId) {
         Map<String, Object> response = new HashMap<>();

@@ -1,0 +1,71 @@
+DELETE /admin/rooms/{roomId} | path roomId:Long
+DELETE /admin/users/{userId} | path userId:Long
+DELETE /api/community-posts | body CommunityPostRequestDTO{category:Integer, content:String, post_id:Long, title:String}
+DELETE /api/community-posts/comments | body CommunityPostCommentRequestDTO{comment_content:String, comment_id:Long, parent_comment_id:Long, post_id:Long}
+DELETE /api/notification/delete/{id} | path id:Long
+DELETE /api/suggestions/comments/{commentId} | path commentId:Long
+DELETE /api/suggestions/images/{imageId} | path imageId:Long
+DELETE /api/suggestions/{suggestId} | path suggestId:Long
+DELETE /user/withdraw produces=[application/json;charset=utf8] | 
+GET /admin/reservations | 
+GET /admin/reservations/date | query date:LocalDate
+GET /admin/reservations/date-range | query startDate:LocalDate, query endDate:LocalDate
+GET /admin/reservations/statistics | 
+GET /admin/reservations/statistics/daily | query date:LocalDate?
+GET /admin/reservations/user/{userId} | path userId:Long
+GET /admin/reservations/{reservationId} | path reservationId:Long
+GET /admin/rooms | 
+GET /admin/rooms/statistics | 
+GET /admin/rooms/{roomId} | path roomId:Long
+GET /admin/rooms/{roomId}/reservations | path roomId:Long
+GET /admin/system/dashboard | 
+GET /admin/system/health | 
+GET /admin/system/statistics | 
+GET /admin/users | 
+GET /admin/users/statistics | 
+GET /admin/users/{userId} | path userId:Long
+GET /api/community-posts | 
+GET /api/community-posts/comments/post/{postId} | path postId:Long
+GET /api/community-posts/comments/user/{userId} | path userId:Long, query type:String?, query postId:Long?
+GET /api/community-posts/comments/{commentId}/replies | path commentId:Long
+GET /api/community-posts/me | query category:Integer?
+GET /api/community-posts/search | query post_id:Long?, query user_id:Long?, query category:Integer?
+GET /api/community-posts/user/{userId} | path userId:Long
+GET /api/community-posts/{id} | path id:Long
+GET /api/notification/list | 
+GET /api/notification/recent-count | 
+GET /api/notification/{id} | path id:Long
+GET /api/reservations/all-reservation | 
+GET /api/reservations/crowding-level | 
+GET /api/reservations/me | 
+GET /api/suggestions | query suggest_id:Optional<Long>?, query user_id:Optional<Long>?, query category:Optional<String>?, query location:Optional<String>?, query is_answered:Optional<Boolean>?
+GET /api/suggestions/comments | query suggest_post_id:Long
+GET /api/suggestions/images | query suggest_post_id:Long
+POST /admin/reservations/{reservationId}/force-cancel | path reservationId:Long
+POST /admin/rooms | body AdminRoomRequestDTO{roomName:String, roomStatus:String}
+POST /api/community-posts | body CommunityPostRequestDTO{category:Integer, content:String, post_id:Long, title:String}
+POST /api/community-posts/comments | body CommunityPostCommentRequestDTO{comment_content:String, comment_id:Long, parent_comment_id:Long, post_id:Long}
+POST /api/notification/create | body NotificationCreateRequestDTO{content:String, title:String}
+POST /api/notification/read | body NotificationReadRequestDTO{notificationId:Long}
+POST /api/notification/view | body NotificationViewCountRequestDTO{notificationId:Long}
+POST /api/reservations | body ReservationRequestDTO{reservationEndTime:LocalDateTime, reservationStartTime:LocalDateTime, roomId:Long}
+POST /api/reservations/cancel | body ReservationCancelRequestDTO{reservationId:Long}
+POST /api/suggestions | body @Valid SuggestPostCreateRequestDTO{category:String, location:String, suggest_content:String, suggest_title:String}
+POST /api/suggestions/comments | body @Valid SuggestPostCommentCreateRequestDTO{answer_content:String, suggest_post_id:Long}
+POST /api/suggestions/images consumes=[multipart/form-data] | part @Valid request:SuggestPostImageUploadRequestDTO{suggest_post_id:Long}, part image_file:MultipartFile
+POST /reissue | arg HttpServletRequest, arg HttpServletResponse
+POST /user/code-send produces=[application/json;charset=utf8] | body CodeSendDTO{email:String}
+POST /user/code-verify produces=[application/json;charset=utf8] | body CodeVerifyDTO{code:String, email:String}
+POST /user/modify-password produces=[application/json;charset=utf8] | body ModifyPasswordDTO{email:String, password:String}
+POST /user/sign-up produces=[application/json;charset=utf8] | body SignUpDTO{age:String, email:String, password:String, studentNumber:String, username:String}
+POST /user/verify-email produces=[application/json;charset=utf8] | body EmailVerificationDTO{email:String}
+PUT /admin/rooms/{roomId} | path roomId:Long, body AdminRoomRequestDTO{roomName:String, roomStatus:String}
+PUT /admin/rooms/{roomId}/status | path roomId:Long, query status:String
+PUT /admin/users/{userId}/role | path userId:Long, query role:String
+PUT /admin/users/{userId}/status | path userId:Long, query status:String
+PUT /api/community-posts | body CommunityPostRequestDTO{category:Integer, content:String, post_id:Long, title:String}
+PUT /api/community-posts/comments | body CommunityPostCommentRequestDTO{comment_content:String, comment_id:Long, parent_comment_id:Long, post_id:Long}
+PUT /api/notification/update | body NotificationUpdateRequestDTO{content:String, notificationId:Long, title:String}
+PUT /api/suggestions | body @Valid SuggestPostUpdateRequestDTO{category:String, is_answered:Boolean, location:String, suggest_content:String, suggest_id:Long, suggest_title:String}
+PUT /api/suggestions/comments | body @Valid SuggestPostCommentUpdateRequestDTO{answer_content:String, comment_id:Long}
+PUT /user/change-username produces=[application/json;charset=utf8] | body ChangeUsernameDTO{newUsername:String}

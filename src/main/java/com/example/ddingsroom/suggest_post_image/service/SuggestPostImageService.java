@@ -75,11 +75,18 @@ public class SuggestPostImageService {
             throw new IllegalArgumentException("게시물 작성자만 이미지를 삭제할 수 있습니다.");
         }
 
-        s3Service.deleteFile(imageEntity.getFileName());
-        log.info("S3에서 파일 삭제 성공: fileName={}", imageEntity.getFileName());
-
         suggestPostImageRepository.delete(imageEntity);
+        s3Service.deleteFilesAfterCommit(List.of(imageEntity.getFileUrl()));
         log.info("DB에서 이미지 정보 삭제 성공: imageId={}", imageId);
+    }
+
+    // 건의·회원 삭제로 이미지 행이 함께 지워질 때 S3 파일도 정리 (삭제 전에 호출)
+    public void deleteFilesOfSuggestPost(Long suggestPostId) {
+        s3Service.deleteFilesAfterCommit(suggestPostImageRepository.findFileUrlsBySuggestPostId(suggestPostId));
+    }
+
+    public void deleteFilesOfUser(Long userId) {
+        s3Service.deleteFilesAfterCommit(suggestPostImageRepository.findFileUrlsByUserId(userId));
     }
 
     @Transactional(readOnly = true)

@@ -152,7 +152,7 @@ public class AdminRoomService {
             
             // 다른 방과 이름 중복 체크 (자기 자신 제외)
             List<RoomEntity> otherRooms = roomRepository.findAll().stream()
-                    .filter(r -> r.getId() != roomId)
+                    .filter(r -> !r.getId().equals(roomId))
                     .collect(Collectors.toList());
             
             boolean duplicateName = otherRooms.stream()
@@ -241,13 +241,15 @@ public class AdminRoomService {
             RoomEntity room = roomOptional.get();
             
             // 해당 방에 활성 예약이 있는지 확인
-            List<ReservationEntity> activeReservations = reservationRepository.findAll().stream()
-                    .filter(r -> r.getRoom().getId() == roomId && "RESERVED".equals(r.getStatus()))
-                    .collect(Collectors.toList());
-            
-            if (!activeReservations.isEmpty()) {
+            if (reservationRepository.existsByRoom_IdAndStatus(roomId, "RESERVED")) {
                 return ResponseEntity.badRequest()
                         .body(AdminResponseDTO.error("활성 예약이 있는 스터디룸은 삭제할 수 없습니다."));
+            }
+
+            // 취소된 예약도 방을 참조하므로 예약 이력이 있으면 삭제하지 않음
+            if (reservationRepository.existsByRoom_Id(roomId)) {
+                return ResponseEntity.badRequest()
+                        .body(AdminResponseDTO.error("예약 이력이 있는 스터디룸은 삭제할 수 없습니다. 사용을 중지하려면 상태를 MAINTENANCE로 변경해주세요."));
             }
             
             String roomName = room.getRoomName();
@@ -289,7 +291,7 @@ public class AdminRoomService {
             
             for (RoomEntity room : allRooms) {
                 long reservationCount = allReservations.stream()
-                        .filter(r -> r.getRoom().getId() == room.getId())
+                        .filter(r -> r.getRoom().getId().equals(room.getId()))
                         .count();
                 roomReservationCounts.put(room.getRoomName(), reservationCount);
             }
@@ -328,7 +330,7 @@ public class AdminRoomService {
             
             RoomEntity room = roomOptional.get();
             List<ReservationEntity> roomReservations = reservationRepository.findAll().stream()
-                    .filter(r -> r.getRoom().getId() == roomId)
+                    .filter(r -> r.getRoom().getId().equals(roomId))
                     .collect(Collectors.toList());
             
             List<ReservationResponseDTO.ReservationDTO> reservationDTOs = roomReservations.stream()

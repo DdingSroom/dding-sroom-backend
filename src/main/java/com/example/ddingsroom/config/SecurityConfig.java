@@ -94,10 +94,12 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests((auth) -> auth
                         // 토큰(로그인) 필수 — 본인 전용 엔드포인트. permitAll 보다 먼저 선언해야 우선 적용됨
-                        .requestMatchers("/user/mypage", "/user/change-username", "/user/withdraw", "/user/verify-email").authenticated()
+                        .requestMatchers("/user/change-username", "/user/withdraw", "/user/verify-email").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/reservations", "/api/reservations/cancel").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/reservations/me").authenticated()
-                        .requestMatchers("/login","/logout", "/", "/join",  "/user/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/notification/read").authenticated()
+                        // /error는 오류 응답(404·400·500)이 403으로 덮이지 않도록 허용
+                        .requestMatchers("/login","/logout", "/", "/join",  "/user/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/error").permitAll()
                         .requestMatchers("/admin", "/admin/**").hasRole("ADMIN") // /admin경로는 ADMIN이라는 역할을 가진 고객만 가능
                         .requestMatchers("/reissue", "/api/reservations/**", "/api/notification/**").permitAll()
                         .anyRequest().authenticated()); // 나머지는 그냥 다 로그인 해야 접근 가능하게

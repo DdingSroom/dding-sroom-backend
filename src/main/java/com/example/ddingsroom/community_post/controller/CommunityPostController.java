@@ -1,5 +1,6 @@
 package com.example.ddingsroom.community_post.controller;
 
+import com.example.ddingsroom.community_post.docs.CommunityPostApiDocs;
 import com.example.ddingsroom.community_post.dto.BaseResponseDTO;
 import com.example.ddingsroom.community_post.dto.CommunityPostRequestDTO;
 import com.example.ddingsroom.community_post.dto.CommunityPostResponseDTO;
@@ -14,7 +15,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/community-posts")
-public class CommunityPostController {
+public class CommunityPostController implements CommunityPostApiDocs {
 
     private final CommunityPostService service;
     private final SecurityUtils securityUtils;
@@ -26,30 +27,34 @@ public class CommunityPostController {
     }
 
     // 게시글 생성
+    @Override
     @PostMapping
-    public ResponseEntity<BaseResponseDTO> createCommunityPost(@RequestBody CommunityPostRequestDTO dto) {
+    public ResponseEntity<BaseResponseDTO<CommunityPostResponseDTO>> createCommunityPost(@RequestBody CommunityPostRequestDTO dto) {
         Long authenticatedUserId = securityUtils.getAuthenticatedUserId();
-        BaseResponseDTO response = service.createCommunityPost(dto, authenticatedUserId);
+        BaseResponseDTO<CommunityPostResponseDTO> response = service.createCommunityPost(dto, authenticatedUserId);
         return ResponseEntity.ok(response);
     }
 
     // 게시글 수정
+    @Override
     @PutMapping
-    public ResponseEntity<BaseResponseDTO> updateCommunityPost(@RequestBody CommunityPostRequestDTO dto) {
+    public ResponseEntity<BaseResponseDTO<CommunityPostResponseDTO>> updateCommunityPost(@RequestBody CommunityPostRequestDTO dto) {
         Long authenticatedUserId = securityUtils.getAuthenticatedUserId();
-        BaseResponseDTO response = service.updateCommunityPost(dto, authenticatedUserId);
+        BaseResponseDTO<CommunityPostResponseDTO> response = service.updateCommunityPost(dto, authenticatedUserId);
         return ResponseEntity.ok(response);
     }
 
     // 게시글 삭제
+    @Override
     @DeleteMapping
-    public ResponseEntity<BaseResponseDTO> deleteCommunityPost(@RequestBody CommunityPostRequestDTO dto) {
+    public ResponseEntity<BaseResponseDTO<Void>> deleteCommunityPost(@RequestBody CommunityPostRequestDTO dto) {
         Long authenticatedUserId = securityUtils.getAuthenticatedUserId();
-        BaseResponseDTO response = service.deleteCommunityPost(dto, authenticatedUserId);
+        BaseResponseDTO<Void> response = service.deleteCommunityPost(dto, authenticatedUserId);
         return ResponseEntity.ok(response);
     }
 
     // 조건부 조회 (기존 방식 유지)
+    @Override
     @GetMapping("/search")
     public ResponseEntity<Map<String, Object>> retrieveCommunityPost(
             @RequestParam(required = false) Long post_id,
@@ -61,50 +66,36 @@ public class CommunityPostController {
     }
 
     // 전체 목록 조회
+    @Override
     @GetMapping
-    public ResponseEntity<BaseResponseDTO> getAllCommunityPosts() {
-        BaseResponseDTO response = service.getAllCommunityPosts();
+    public ResponseEntity<BaseResponseDTO<List<CommunityPostResponseDTO>>> getAllCommunityPosts() {
+        BaseResponseDTO<List<CommunityPostResponseDTO>> response = service.getAllCommunityPosts();
         return ResponseEntity.ok(response);
     }
 
     // 특정 게시글 조회
+    @Override
     @GetMapping("/{id}")
-    public ResponseEntity<BaseResponseDTO> getCommunityPost(@PathVariable Long id) {
-        BaseResponseDTO response = service.getCommunityPost(id);
+    public ResponseEntity<BaseResponseDTO<CommunityPostResponseDTO>> getCommunityPost(@PathVariable Long id) {
+        BaseResponseDTO<CommunityPostResponseDTO> response = service.getCommunityPost(id);
         return ResponseEntity.ok(response);
     }
 
     // 내 게시글 조회 (토큰 기반, 선택적 카테고리 필터)
+    @Override
     @GetMapping("/me")
-    public ResponseEntity<BaseResponseDTO> getMyPosts(@RequestParam(required = false) Integer category) {
+    public ResponseEntity<BaseResponseDTO<List<CommunityPostResponseDTO>>> getMyPosts(@RequestParam(required = false) Integer category) {
         Long authenticatedUserId = securityUtils.getAuthenticatedUserId();
-        BaseResponseDTO response = service.getPostsByUserIdWithFilter(authenticatedUserId, category);
+        BaseResponseDTO<List<CommunityPostResponseDTO>> response = service.getPostsByUserIdWithFilter(authenticatedUserId, category);
         return ResponseEntity.ok(response);
     }
     // CommunityPostController.java에 추가
 
     // 특정 사용자의 모든 게시글 조회
+    @Override
     @GetMapping("/user/{userId}")
-    public ResponseEntity<BaseResponseDTO> getPostsByUserId(@PathVariable Long userId) {
-        BaseResponseDTO response = service.getPostsByUserId(userId);
-        return ResponseEntity.ok(response);
-    }
-
-    // 특정 사용자의 특정 카테고리 게시글 조회
-    @GetMapping("/user/{userId}/category/{category}")
-    public ResponseEntity<BaseResponseDTO> getPostsByUserIdAndCategory(
-            @PathVariable Long userId,
-            @PathVariable Integer category) {
-        BaseResponseDTO response = service.getPostsByUserIdAndCategory(userId, category);
-        return ResponseEntity.ok(response);
-    }
-
-    // 특정 사용자의 게시글 조회 (쿼리 파라미터로 카테고리 필터링)
-    @GetMapping("/user/{userId}/posts")
-    public ResponseEntity<BaseResponseDTO> getPostsByUserIdWithFilter(
-            @PathVariable Long userId,
-            @RequestParam(required = false) Integer category) {
-        BaseResponseDTO response = service.getPostsByUserIdWithFilter(userId, category);
+    public ResponseEntity<BaseResponseDTO<List<CommunityPostResponseDTO>>> getPostsByUserId(@PathVariable Long userId) {
+        BaseResponseDTO<List<CommunityPostResponseDTO>> response = service.getPostsByUserId(userId);
         return ResponseEntity.ok(response);
     }
 

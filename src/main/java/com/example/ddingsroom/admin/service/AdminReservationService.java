@@ -141,7 +141,7 @@ public class AdminReservationService {
             LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
             
             List<ReservationEntity> reservations = reservationRepository.findAll().stream()
-                    .filter(r -> r.getStartTime().isAfter(startOfDay) && 
+                    .filter(r -> !r.getStartTime().isBefore(startOfDay) &&
                                r.getStartTime().isBefore(endOfDay))
                     .collect(Collectors.toList());
             
@@ -183,7 +183,7 @@ public class AdminReservationService {
             LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
             
             List<ReservationEntity> reservations = reservationRepository.findAll().stream()
-                    .filter(r -> r.getStartTime().isAfter(startDateTime) && 
+                    .filter(r -> !r.getStartTime().isBefore(startDateTime) &&
                                r.getStartTime().isBefore(endDateTime))
                     .collect(Collectors.toList());
             
@@ -265,7 +265,7 @@ public class AdminReservationService {
             LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
             
             List<ReservationEntity> dayReservations = reservationRepository.findAll().stream()
-                    .filter(r -> r.getStartTime().isAfter(startOfDay) && 
+                    .filter(r -> !r.getStartTime().isBefore(startOfDay) &&
                                r.getStartTime().isBefore(endOfDay))
                     .collect(Collectors.toList());
             
@@ -322,7 +322,7 @@ public class AdminReservationService {
             
             UserEntity user = userOptional.get();
             List<ReservationEntity> userReservations = reservationRepository.findAll().stream()
-                    .filter(r -> r.getUser().getId() == userId)
+                    .filter(r -> r.getUser().getId().equals(userId))
                     .collect(Collectors.toList());
             
             List<ReservationResponseDTO.ReservationDTO> reservationDTOs = userReservations.stream()

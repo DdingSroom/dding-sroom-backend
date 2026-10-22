@@ -35,7 +35,7 @@ public class CommunityPostCommentService {
     }
 
     // 댓글 또는 대댓글 생성
-    public BaseResponseDTO createComment(CommunityPostCommentRequestDTO dto, Long authenticatedUserId) {
+    public BaseResponseDTO<CommunityPostCommentResponseDTO> createComment(CommunityPostCommentRequestDTO dto, Long authenticatedUserId) {
         try {
             // 사용자 존재 확인 (신원은 토큰에서 파생)
             UserEntity user = userRepository.findById(authenticatedUserId).orElse(null);
@@ -81,7 +81,7 @@ public class CommunityPostCommentService {
     }
 
     // 댓글 수정
-    public BaseResponseDTO updateComment(CommunityPostCommentRequestDTO dto, Long authenticatedUserId) {
+    public BaseResponseDTO<CommunityPostCommentResponseDTO> updateComment(CommunityPostCommentRequestDTO dto, Long authenticatedUserId) {
         try {
             Optional<CommunityPostCommentEntity> optional = repository.findById(dto.getCommentId());
             if (optional.isEmpty()) {
@@ -105,7 +105,7 @@ public class CommunityPostCommentService {
     }
 
     // 댓글 삭제 (대댓글이 있는 경우 확인)
-    public BaseResponseDTO deleteComment(CommunityPostCommentRequestDTO dto, Long authenticatedUserId) {
+    public BaseResponseDTO<Void> deleteComment(CommunityPostCommentRequestDTO dto, Long authenticatedUserId) {
         try {
             Optional<CommunityPostCommentEntity> optional = repository.findById(dto.getCommentId());
             if (optional.isEmpty()) {
@@ -132,7 +132,7 @@ public class CommunityPostCommentService {
     }
 
     // 특정 게시글의 모든 댓글 조회 (계층형 구조)
-    public BaseResponseDTO getCommentsByPostId(Long postId) {
+    public BaseResponseDTO<List<CommunityPostCommentResponseDTO>> getCommentsByPostId(Long postId) {
         try {
             List<CommunityPostCommentEntity> comments = repository.findByPostIdOrderByHierarchy(postId);
             List<CommunityPostCommentResponseDTO> responseDTOs = buildHierarchicalComments(comments);
@@ -144,7 +144,7 @@ public class CommunityPostCommentService {
     }
 
     // 특정 댓글의 대댓글들 조회
-    public BaseResponseDTO getRepliesByCommentId(Long commentId) {
+    public BaseResponseDTO<List<CommunityPostCommentResponseDTO>> getRepliesByCommentId(Long commentId) {
         try {
             List<CommunityPostCommentEntity> replies = repository.findByParentCommentId(commentId);
             List<CommunityPostCommentResponseDTO> responseDTOs = replies.stream()
@@ -157,23 +157,8 @@ public class CommunityPostCommentService {
         }
     }
 
-    // 단일 댓글 조회
-    public BaseResponseDTO getComment(Long commentId) {
-        try {
-            Optional<CommunityPostCommentEntity> optional = repository.findById(commentId);
-            if (optional.isPresent()) {
-                CommunityPostCommentResponseDTO responseDTO = convertToResponseDTO(optional.get());
-                return BaseResponseDTO.success("댓글 조회 성공", responseDTO);
-            } else {
-                return BaseResponseDTO.error("해당 댓글을 찾을 수 없습니다. ID: " + commentId);
-            }
-        } catch (Exception e) {
-            return BaseResponseDTO.error("댓글 조회 중 오류가 발생했습니다: " + e.getMessage());
-        }
-    }
-
     // 특정 사용자의 모든 댓글 조회 (필터링 옵션 포함) - 통합된 메서드
-    public BaseResponseDTO getCommentsByUserId(Long userId, String type, Long postId) {
+    public BaseResponseDTO<List<CommunityPostCommentResponseDTO>> getCommentsByUserId(Long userId, String type, Long postId) {
         try {
             List<CommunityPostCommentEntity> comments;
 
@@ -211,7 +196,7 @@ public class CommunityPostCommentService {
     }
 
     // 특정 사용자의 모든 댓글 조회 (단순 버전)
-    public BaseResponseDTO getCommentsByUserId(Long userId) {
+    public BaseResponseDTO<List<CommunityPostCommentResponseDTO>> getCommentsByUserId(Long userId) {
         try {
             // 수정: findByUserId 사용 (기존에 있는 메서드)
             List<CommunityPostCommentEntity> comments = repository.findByUserId(userId);
@@ -222,49 +207,6 @@ public class CommunityPostCommentService {
             return BaseResponseDTO.success("사용자 댓글 목록 조회 성공", responseDTOs);
         } catch (Exception e) {
             return BaseResponseDTO.error("사용자 댓글 목록 조회 중 오류가 발생했습니다: " + e.getMessage());
-        }
-    }
-
-    // 특정 사용자의 일반댓글만 조회
-    public BaseResponseDTO getOnlyCommentsByUserId(Long userId) {
-        try {
-            List<CommunityPostCommentEntity> comments = repository.findByUserIdAndParentCommentIdIsNull(userId);
-            List<CommunityPostCommentResponseDTO> responseDTOs = comments.stream()
-                    .map(this::convertToResponseDTO)
-                    .collect(Collectors.toList());
-
-            return BaseResponseDTO.success("사용자의 일반댓글 조회 성공", responseDTOs);
-        } catch (Exception e) {
-            return BaseResponseDTO.error("사용자 일반댓글 조회 중 오류가 발생했습니다: " + e.getMessage());
-        }
-    }
-
-    // 특정 사용자의 대댓글만 조회
-    public BaseResponseDTO getOnlyRepliesByUserId(Long userId) {
-        try {
-            List<CommunityPostCommentEntity> replies = repository.findByUserIdAndParentCommentIdIsNotNull(userId);
-            List<CommunityPostCommentResponseDTO> responseDTOs = replies.stream()
-                    .map(this::convertToResponseDTO)
-                    .collect(Collectors.toList());
-
-            return BaseResponseDTO.success("사용자의 대댓글 조회 성공", responseDTOs);
-        } catch (Exception e) {
-            return BaseResponseDTO.error("사용자 대댓글 조회 중 오류가 발생했습니다: " + e.getMessage());
-        }
-    }
-
-    // 특정 사용자가 특정 게시글에 단 댓글들
-    public BaseResponseDTO getCommentsByUserIdAndPostId(Long userId, Long postId) {
-        try {
-            List<CommunityPostCommentEntity> comments = repository.findByUserIdAndPostId(userId, postId);
-            List<CommunityPostCommentResponseDTO> responseDTOs = comments.stream()
-                    .map(this::convertToResponseDTO)
-                    .collect(Collectors.toList());
-
-            String message = String.format("사용자 %d가 게시글 %d에 단 댓글 조회 성공", userId, postId);
-            return BaseResponseDTO.success(message, responseDTOs);
-        } catch (Exception e) {
-            return BaseResponseDTO.error("사용자별 게시글 댓글 조회 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 

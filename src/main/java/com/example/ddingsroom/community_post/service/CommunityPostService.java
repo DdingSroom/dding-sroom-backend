@@ -30,7 +30,7 @@ public class CommunityPostService {
     }
 
     // 게시글 생성
-    public BaseResponseDTO createCommunityPost(CommunityPostRequestDTO dto, Long authenticatedUserId) {
+    public BaseResponseDTO<CommunityPostResponseDTO> createCommunityPost(CommunityPostRequestDTO dto, Long authenticatedUserId) {
         try {
             // 사용자 존재 확인 (신원은 토큰에서 파생)
             UserEntity user = userRepository.findById(authenticatedUserId)
@@ -56,7 +56,7 @@ public class CommunityPostService {
     }
 
     // 게시글 수정
-    public BaseResponseDTO updateCommunityPost(CommunityPostRequestDTO dto, Long authenticatedUserId) {
+    public BaseResponseDTO<CommunityPostResponseDTO> updateCommunityPost(CommunityPostRequestDTO dto, Long authenticatedUserId) {
         try {
             Optional<CommunityPostEntity> optional = repository.findById(dto.getPostId());
             if (optional.isEmpty()) {
@@ -84,7 +84,7 @@ public class CommunityPostService {
 
     // 게시글 삭제 (JPA cascade로 댓글 자동 삭제)
     @Transactional
-    public BaseResponseDTO deleteCommunityPost(CommunityPostRequestDTO dto, Long authenticatedUserId) {
+    public BaseResponseDTO<Void> deleteCommunityPost(CommunityPostRequestDTO dto, Long authenticatedUserId) {
         try {
             Optional<CommunityPostEntity> optional = repository.findById(dto.getPostId());
             if (optional.isEmpty()) {
@@ -133,7 +133,7 @@ public class CommunityPostService {
     }
 
     // 전체 목록 조회 - 수정됨!
-    public BaseResponseDTO getAllCommunityPosts() {
+    public BaseResponseDTO<List<CommunityPostResponseDTO>> getAllCommunityPosts() {
         try {
             List<CommunityPostEntity> posts = repository.findAll();
             List<CommunityPostResponseDTO> responseDTOs = posts.stream()
@@ -147,7 +147,7 @@ public class CommunityPostService {
     }
 
     // 특정 게시글 조회 - 수정됨!
-    public BaseResponseDTO getCommunityPost(Long id) {
+    public BaseResponseDTO<CommunityPostResponseDTO> getCommunityPost(Long id) {
         try {
             Optional<CommunityPostEntity> optional = repository.findById(id);
             if (optional.isPresent()) {
@@ -178,7 +178,7 @@ public class CommunityPostService {
     // CommunityPostService.java에 추가
 
     // 특정 사용자의 모든 게시글 조회
-    public BaseResponseDTO getPostsByUserId(Long userId) {
+    public BaseResponseDTO<List<CommunityPostResponseDTO>> getPostsByUserId(Long userId) {
         try {
             List<CommunityPostEntity> posts = repository.findByUserId(userId);
             List<CommunityPostResponseDTO> responseDTOs = posts.stream()
@@ -192,24 +192,8 @@ public class CommunityPostService {
         }
     }
 
-    // 특정 사용자의 특정 카테고리 게시글 조회
-    public BaseResponseDTO getPostsByUserIdAndCategory(Long userId, Integer category) {
-        try {
-            List<CommunityPostEntity> posts = repository.findByUserIdAndCategory(userId, category);
-            List<CommunityPostResponseDTO> responseDTOs = posts.stream()
-                    .map(this::convertToResponseDTO)
-                    .collect(Collectors.toList());
-
-            String message = String.format("사용자 %d의 카테고리 %d 게시글 조회 성공 (총 %d개)",
-                    userId, category, responseDTOs.size());
-            return BaseResponseDTO.success(message, responseDTOs);
-        } catch (Exception e) {
-            return BaseResponseDTO.error("사용자별 카테고리 게시글 조회 중 오류가 발생했습니다: " + e.getMessage());
-        }
-    }
-
     // 특정 사용자의 게시글 조회 (필터링 옵션)
-    public BaseResponseDTO getPostsByUserIdWithFilter(Long userId, Integer category) {
+    public BaseResponseDTO<List<CommunityPostResponseDTO>> getPostsByUserIdWithFilter(Long userId, Integer category) {
         try {
             List<CommunityPostEntity> posts;
 

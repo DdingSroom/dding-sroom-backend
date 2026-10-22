@@ -1,5 +1,6 @@
 package com.example.ddingsroom.suggest_post.controller;
 
+import com.example.ddingsroom.suggest_post.docs.SuggestionApiDocs;
 import com.example.ddingsroom.suggest_post.dto.SuggestPostCreateRequestDTO;
 import com.example.ddingsroom.suggest_post.dto.SuggestPostDeleteRequestDTO;
 import com.example.ddingsroom.suggest_post.dto.SuggestPostResponseDTO;
@@ -21,11 +22,12 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/suggestions")
 @RequiredArgsConstructor
-public class SuggestPostController {
+public class SuggestPostController implements SuggestionApiDocs {
 
     private final SuggestPostSevice suggestPostSevice;
     private final SecurityUtils securityUtils;
 
+    @Override
     @PostMapping
     public ResponseEntity<Map<String, String>> createSuggestPost(@Valid @RequestBody SuggestPostCreateRequestDTO request){
         Map<String, String> response = new HashMap<>();
@@ -46,6 +48,7 @@ public class SuggestPostController {
         }
     }
 
+    @Override
     @PutMapping
     public ResponseEntity<Map<String, String>> updateSuggestPost(@Valid @RequestBody SuggestPostUpdateRequestDTO request) {
 
@@ -68,6 +71,7 @@ public class SuggestPostController {
         }
     }
 
+    @Override
     @DeleteMapping("/{suggestId}")
     public ResponseEntity<Map<String, String>> deleteSuggestPost(
             @PathVariable Long suggestId) {
@@ -89,6 +93,7 @@ public class SuggestPostController {
         }
     }
 
+    @Override
     @GetMapping
     public ResponseEntity<Map<String, Object>> retrieveSuggestPosts(
             @RequestParam(name = "suggest_id", required = false) Optional<Long> suggestId,
@@ -117,5 +122,16 @@ public class SuggestPostController {
             response.put("error", "건의 조회 중 오류가 발생했습니다: " + e.getMessage());
             return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleValidationExceptions(org.springframework.web.bind.MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((org.springframework.validation.FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
     }
 }
